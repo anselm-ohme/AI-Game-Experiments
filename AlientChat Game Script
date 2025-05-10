@@ -1,0 +1,106 @@
+import openai
+import os
+import tkinter as tk
+from dotenv import load_dotenv
+from tkinter import scrolledtext
+
+# Load API key
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Alien profile
+alien_profile = {
+    "name": "Zarnok",
+    "species": "Quarnarian",
+    "description": (
+        "Zarnok is a telepathic diplomat from the ice world of Quarnar. "
+        "He communicates in poetic metaphors and values emotional resonance over logic."
+    )
+}
+
+# Keywords affecting diplomacy score
+positive_keywords = ["peace", "trust", "friend", "agree", "welcome", "harmony", "gratitude"]
+negative_keywords = ["war", "threat", "disappoint", "danger", "enemy", "hostile", "reject"]
+
+# Generate prompt
+def build_prompt(user_input):
+    return f"""
+You are roleplaying as {alien_profile['name']}, an alien of the {alien_profile['species']} species.
+{alien_profile['description']}
+
+Respond to the human diplomat in character. Speak in short poetic metaphors or riddles.
+
+Human: {user_input}
+{alien_profile['name']}:"""
+
+# Get response
+def get_response(user_input):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a deeply immersive alien diplomat in a sci-fi game."},
+                {"role": "user", "content": build_prompt(user_input)}
+            ],
+            temperature=0.85,
+            max_tokens=200
+        )
+        return response['choices'][0]['message']['content'].strip()
+    except Exception as e:
+        return f"Error: {e}"
+
+# Score logic
+def update_diplomacy_score(response, current_score):
+    lower_response = response.lower()
+    score = current_score
+    for word in positive_keywords:
+        if word in lower_response:
+            score += 5
+    for word in negative_keywords:
+        if word in lower_response:
+            score -= 5
+    return max(0, min(100, score))  # Clamp between 0 and 100
+
+# GUI App
+class AlienChatApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Alien Diplomacy Simulator")
+
+        self.diplomacy_score = 50
+
+        self.chat_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=70, height=20, state='disabled', font=("Helvetica", 12))
+        self.chat_area.pack(padx=10, pady=10)
+
+        self.entry = tk.Entry(root, font=("Helvetica", 12))
+        self.entry.pack(padx=10, pady=(0,10), fill=tk.X)
+        self.entry.bind("<Return>", self.send_message)
+
+        self.send_button = tk.Button(root, text="Send", command=self.send_message)
+        self.send_button.pack()
+
+        self.score_label = tk.Label(root, text=f"Diplomacy Score: {self.diplomacy_score}", font=("Helvetica", 12, "bold"))
+        self.score_label.pack(pady=5)
+
+    def send_message(self, event=None):
+        user_input = self.entry.get().strip()
+        if user_input:
+            self.display_text(f"You: {user_input}")
+            self.entry.delete(0, tk.END)
+            response = get_response(user_input)
+            self.display_text(f"{alien_profile['name']}: {response}")
+
+            # Update and display diplomacy score
+            self.diplomacy_score = update_diplomacy_score(response, self.diplomacy_score)
+            self.score_label.config(text=f"Diplomacy Score: {self.diplomacy_score}")
+
+    def display_text(self, text):
+        self.chat_area.configure(state='normal')
+        self.chat_area.insert(tk.END, f"{text}\n\n")
+        self.chat_area.configure(state='disabled')
+        self.chat_area.yview(tk.END)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = AlienChatApp(root)
+    root.mainloop()
