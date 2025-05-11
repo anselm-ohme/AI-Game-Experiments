@@ -31,6 +31,6 @@ Engage in a diplomatic dialogue, build trust—or fail spectacularly. Your choic
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/alien-diplomacy-simulator.git
+git clone https://github.com/anselm-ohme/alien-diplomacy-simulator.git
 cd alien-diplomacy-simulator
 
